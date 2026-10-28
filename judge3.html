@@ -41,7 +41,7 @@ function render(){
   const s=Store.state||{couple:'',round:0,revealed:false,scores:[null,null,null]}, mine=s.scores[J-1];
   if(s.round!==seen){seen=s.round;pick=null}
   if(mine!==null&&pick===null)pick=mine;
-  $('couple').textContent=s.couple||'Waiting for the next couple';
+  $('couple').textContent=s.couple||'Waiting for the next performer';
   const open=!!s.couple&&!s.revealed&&Store.online;
   [...$('pad').children].forEach((b,i)=>{b.disabled=!open;b.classList.toggle('sel',pick===i+1)});
   const go=$('go');
