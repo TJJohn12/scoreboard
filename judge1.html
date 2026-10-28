@@ -47,7 +47,7 @@ function render(){
   const go=$('go');
   go.disabled=!open||pick===null||pick===mine;
   go.textContent=mine===null?'Submit score':'Update score';
-  $('msg').textContent=!Store.online?'Offline. Reconnecting…':!s.couple?'':s.revealed?'Scores are revealed. Wait for the next couple.':mine===null?'Pick a score from 1 to 10, then submit.':'Submitted '+mine+'. You can change it until the reveal.';
+  $('msg').textContent=!Store.online?'Offline. Reconnecting…':!s.couple?'':s.revealed?'Scores are revealed. Wait for the next performer.':mine===null?'Pick a score from 1 to 10, then submit.':'Submitted '+mine+'. You can change it until the reveal.';
 }
 Store.onChange(render);render();
 </script>
