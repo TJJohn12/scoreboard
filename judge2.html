@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Judge 2 scoring</title>
+<style>
+:root{--bg:#2a0b19;--panel:#401428;--ink:#f7ebd3;--dim:#c3a3ae;--brass:#e3b862}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:1rem/1.5 system-ui,sans-serif;display:grid;place-items:center;padding:1.25rem}
+main{width:100%;max-width:28rem}
+.who{color:var(--dim);margin:0}
+h1{font:400 clamp(2rem,9vw,3rem)/1.1 "Bodoni 72",Didot,"Playfair Display",Georgia,serif;margin:.25rem 0 1.5rem}
+#pad{display:grid;grid-template-columns:repeat(5,1fr);gap:.6rem}
+#pad button{aspect-ratio:1;font:400 1.9rem "Bodoni 72",Didot,Georgia,serif;background:var(--panel);color:var(--ink);border:1px solid #5c2a42;border-radius:.5rem;cursor:pointer}
+#pad button.sel{background:var(--brass);color:#2a0b19;border-color:var(--brass)}
+#pad button:disabled{opacity:.4;cursor:not-allowed}
+#go{width:100%;margin-top:1rem;padding:1rem;font:600 1.1rem system-ui,sans-serif;background:var(--ink);color:#2a0b19;border:0;border-radius:.5rem;cursor:pointer}
+#go:disabled{opacity:.35;cursor:not-allowed}
+#msg{color:var(--dim);min-height:3em;margin-top:1rem}
+button:focus-visible{outline:3px solid var(--brass);outline-offset:2px}
+</style>
+<main>
+<p class="who" id="who"></p>
+<h1 id="couple"></h1>
+<div id="pad"></div>
+<button id="go"></button>
+<p id="msg" aria-live="polite"></p>
+</main>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="shared.js"></script>
+<script>
+const J=2, NAME='Judge 2';
+const $=id=>document.getElementById(id);
+let pick=null, seen=-1;
+$('who').textContent=NAME;
+for(let n=1;n<=10;n++){const b=document.createElement('button');b.textContent=n;b.onclick=()=>{pick=n;render()};$('pad').appendChild(b)}
+$('go').onclick=()=>{const s=Store.state;if(!s||!s.couple||s.revealed||pick===null||!Store.online)return;Store.score(J,pick)};
+function render(){
+  if(!Store.code){$('couple').textContent='Missing event code';$('msg').textContent='Add ?e=yourcode to the end of this page address.';$('go').hidden=true;return}
+  const s=Store.state||{couple:'',round:0,revealed:false,scores:[null,null,null]}, mine=s.scores[J-1];
+  if(s.round!==seen){seen=s.round;pick=null}
+  if(mine!==null&&pick===null)pick=mine;
+  $('couple').textContent=s.couple||'Waiting for the next couple';
+  const open=!!s.couple&&!s.revealed&&Store.online;
+  [...$('pad').children].forEach((b,i)=>{b.disabled=!open;b.classList.toggle('sel',pick===i+1)});
+  const go=$('go');
+  go.disabled=!open||pick===null||pick===mine;
+  go.textContent=mine===null?'Submit score':'Update score';
+  $('msg').textContent=!Store.online?'Offline. Reconnecting…':!s.couple?'':s.revealed?'Scores are revealed. Wait for the next couple.':mine===null?'Pick a score from 1 to 10, then submit.':'Submitted '+mine+'. You can change it until the reveal.';
+}
+Store.onChange(render);render();
+</script>
+</html>
