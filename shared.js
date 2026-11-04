@@ -7,7 +7,6 @@ apiKey: "AIzaSyBxVpl3kl_MX4pkukbX4VZB16-4ZLT9RE0",
   storageBucket: "dance-scoreboard.firebasestorage.app",
   messagingSenderId: "24558645087",
   appId: "1:24558645087:web:a6827269dda231860850ea"
-  
 };
 
 // 2) Nothing below needs editing.
@@ -23,7 +22,8 @@ const Store = (() => {
       performer: v.performer || '',
       round: v.round || 0,
       revealed: !!v.revealed,
-      showBoard: v.showBoard !== false,
+      showBoard: v.showBoard === true,
+      names: ['j1', 'j2', 'j3'].map((k, i) => ((v.names || {})[k] || '').trim() || 'Judge ' + (i + 1)),
       scores: [sc.j1, sc.j2, sc.j3].map(x => x === undefined ? null : x),
       history: Object.values(v.history || {}).sort((a, b) => a.at - b.at)
     };
@@ -39,7 +39,7 @@ const Store = (() => {
     db.ref('.info/connected').on('value', s => { online = !!s.val(); emit(); });
   }
   return {
-    code, build: '3',
+    code, build: '5',
     get error() { return err; },
     get state() { return state; },
     get online() { return online; },
@@ -56,6 +56,14 @@ const Store = (() => {
       return w(ref.update(u));
     },
     setBoard(on) { return w(ref.update({ showBoard: !!on })); },
-    reset() { return w(ref.remove()); }
+    setNames(a) {
+      const n = {};
+      a.forEach((x, i) => { n['j' + (i + 1)] = String(x || '').trim().slice(0, 24) || null; });
+      return w(ref.update({ names: n }));
+    },
+    // Reset clears the show but keeps the judge names.
+    reset() {
+      return w(ref.update({ performer: null, round: null, revealed: null, scores: null, history: null, showBoard: null }));
+    }
   };
 })();

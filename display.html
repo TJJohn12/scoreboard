@@ -8,9 +8,9 @@
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--ink);font:1.25rem/1.4 system-ui,sans-serif;overflow:hidden}
-.wrap{height:100%;display:grid;grid-template-columns:1fr 24rem;gap:2rem;padding:3vw}
-.wrap.solo{grid-template-columns:1fr}
+.wrap{height:100%;display:grid;grid-template-columns:1fr;padding:3vw}
 #stage{display:flex;flex-direction:column;justify-content:center;min-width:0}
+#stage[hidden]{display:none}
 #status{color:var(--dim);font-size:1.6rem;margin:0}
 #performer{font:400 clamp(3rem,7vw,7.5rem)/1 var(--serif);margin:.2em 0 .5em}
 #cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
@@ -28,19 +28,22 @@ body{background:var(--bg);color:var(--ink);font:1.25rem/1.4 system-ui,sans-serif
 #tot{margin-top:2rem;display:flex;align-items:baseline;gap:1rem;opacity:0;background:var(--orange);color:#fff;padding:.8rem 2rem;border-radius:.75rem;width:fit-content}
 #tot.on{opacity:1;transition:opacity .8s 3.2s}
 #tot b{font:400 7rem/1 var(--serif)}
-aside{background:var(--panel);border-radius:.75rem;padding:1.5rem;overflow:auto}
+aside{background:var(--panel);border-radius:.75rem;padding:3vw;overflow:auto;min-height:0}
 aside[hidden]{display:none}
-aside h2{font:400 2rem var(--serif);margin:0 0 1rem;padding-bottom:.6rem;border-bottom:3px solid var(--orange)}
-ol{margin:0;padding:0;list-style:none}
-li{display:flex;justify-content:space-between;gap:1rem;padding:.6rem 0;border-bottom:1px solid var(--line)}
+aside h2{font:400 clamp(3rem,6vw,6rem)/1 var(--serif);margin:0 0 1.5rem;padding-bottom:1rem;border-bottom:4px solid var(--orange)}
+ol{margin:0;padding:0;list-style:none;font-size:clamp(1.6rem,3vw,3.2rem);column-gap:4rem}
+ol.c2{columns:2}
+ol.c3{columns:3}
+li{display:flex;justify-content:space-between;gap:1rem;padding:.7rem 0;break-inside:avoid;border-bottom:1px solid var(--line)}
 li b{color:var(--sky);font-weight:600}
-#empty{color:var(--dim)}
+#empty{color:var(--dim);font-size:1.8rem}
 #net{position:fixed;top:1rem;right:1rem;background:#8a1c1c;color:#fff;padding:.3rem .8rem;border-radius:.4rem;font-size:1rem}
 #net[hidden],#ops[hidden]{display:none}
 #ops{position:fixed;left:0;right:0;bottom:0;background:#021433;padding:.8rem 3vw;display:flex;gap:.6rem;flex-wrap:wrap;font-size:1rem}
 #ops input,#ops button{font:inherit;padding:.6rem .9rem;border-radius:.4rem;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
 #ops button{cursor:pointer}#ops button:disabled{opacity:.35;cursor:not-allowed}
 #ops input{min-width:16rem}
+#ops .nmj{min-width:11rem}
 button:focus-visible,input:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){.card.on .num,#tot.on{transition:none!important}}
 </style>
@@ -69,22 +72,27 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sky);outline-of
   <button id="toggle">Hide leaderboard</button>
   <button id="reset">Reset everything</button>
   <span id="ver" style="margin-left:auto;color:var(--dim);align-self:center"></span>
+  <div style="flex-basis:100%"></div>
+  <input class="nmj" maxlength="24" placeholder="Judge 1 name" aria-label="Judge 1 name" autocomplete="off">
+  <input class="nmj" maxlength="24" placeholder="Judge 2 name" aria-label="Judge 2 name" autocomplete="off">
+  <input class="nmj" maxlength="24" placeholder="Judge 3 name" aria-label="Judge 3 name" autocomplete="off">
+  <button id="savenames">Save judge names</button>
 </div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="shared.js?v=3"></script>
+<script src="shared.js?v=5"></script>
 <script>
-const NAMES=['Judge 1','Judge 2','Judge 3'];
 const $=id=>document.getElementById(id);
 const cards=[...document.querySelectorAll('.card')];
-cards.forEach((c,i)=>c.querySelector('.jn').textContent=NAMES[i]);
-let lastBoard='';
-const showing=()=>!Store.state||Store.state.showBoard;
+let lastBoard='',lastNames='';
+const showing=()=>!!(Store.state&&Store.state.showBoard);
 
 $('start').onclick=()=>{const name=$('nm').value.trim();if(!name||!Store.online)return;Store.start(name);$('nm').value=''};
 $('nm').addEventListener('keydown',e=>{if(e.key==='Enter')$('start').click()});
 $('reveal').onclick=()=>{const s=Store.state;if(!s||!s.performer||s.revealed||s.scores.some(v=>v===null))return;Store.reveal()};
 $('toggle').onclick=()=>{if(Store.online)Store.setBoard(!showing())};
+$('savenames').onclick=()=>{if(Store.online)Store.setNames([...document.querySelectorAll('.nmj')].map(i=>i.value))};
+document.querySelectorAll('.nmj').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')$('savenames').click()}));
 $('reset').onclick=()=>{if(confirm('Clear the current performer and the whole leaderboard?')){lastBoard='';Store.reset()}};
 addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT')return;
@@ -95,11 +103,11 @@ addEventListener('keydown',e=>{
 
 function render(){
   if(!Store.code){$('status').textContent='Missing event code. Add ?e=yourcode to this page address.';return}
-  const s=Store.state||{performer:'',revealed:false,showBoard:true,scores:[null,null,null],history:[]}, has=!!s.performer;
+  const s=Store.state||{performer:'',revealed:false,showBoard:false,names:['Judge 1','Judge 2','Judge 3'],scores:[null,null,null],history:[]}, has=!!s.performer;
   $('net').hidden=Store.online&&!Store.error;
   $('net').textContent=Store.error?'Could not save: '+Store.error:'Offline. Reconnecting…';
-  $('ver').textContent='display build 3 · shared build '+(Store.build||'old');
-  $('wrap').classList.toggle('solo',!s.showBoard);
+  $('ver').textContent='display build 5 · shared build '+(Store.build||'old');
+  $('stage').hidden=s.showBoard;
   $('side').hidden=!s.showBoard;
   $('toggle').textContent=s.showBoard?'Hide leaderboard':'Show leaderboard';
   $('performer').textContent=s.performer;
@@ -107,16 +115,23 @@ function render(){
   $('cards').hidden=!has;
   cards.forEach((c,i)=>{
     const v=s.scores[i];
+    c.querySelector('.jn').textContent=s.names[i];
     c.classList.toggle('ready',v!==null);
     c.classList.toggle('on',s.revealed);
     c.querySelector('.st').textContent=v!==null?'Ready':'Scoring…';
     c.querySelector('.num').textContent=s.revealed&&v!==null?v:'';
   });
+  const nsig=s.names.join('|');
+  if(nsig!==lastNames&&!document.activeElement.classList.contains('nmj')){
+    lastNames=nsig;
+    document.querySelectorAll('.nmj').forEach((el,i)=>el.value=s.names[i]);
+  }
   $('tot').classList.toggle('on',s.revealed);
   $('totnum').textContent=s.revealed?s.scores.reduce((a,b)=>a+b,0):'';
   $('reveal').disabled=!has||s.revealed||s.scores.some(v=>v===null)||!Store.online;
   $('start').disabled=!Store.online;
   $('toggle').disabled=!Store.online;
+  $('savenames').disabled=!Store.online;
 
   const rows=s.history.filter(e=>Date.now()>e.at+4200).sort((a,b)=>b.total-a.total);
   const sig=JSON.stringify(rows);
@@ -127,6 +142,7 @@ function render(){
       const li=document.createElement('li'),n=document.createElement('span'),t=document.createElement('b');
       n.textContent=(i+1)+'. '+e.performer;t.textContent=e.total;li.append(n,t);$('board').appendChild(li);
     });
+    $('board').className=rows.length>16?'c3':rows.length>8?'c2':'';
     $('empty').hidden=rows.length>0;
   }
 }

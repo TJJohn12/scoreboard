@@ -28,7 +28,7 @@ button:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
 </main>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="shared.js?v=3"></script>
+<script src="shared.js?v=5"></script>
 <script>
 const J=2, NAME='Judge 2';
 const $=id=>document.getElementById(id);
@@ -37,6 +37,8 @@ $('who').textContent=NAME;
 for(let n=1;n<=10;n++){const b=document.createElement('button');b.textContent=n;b.onclick=()=>{pick=n;render()};$('pad').appendChild(b)}
 $('go').onclick=()=>{const s=Store.state;if(!s||!s.performer||s.revealed||pick===null||!Store.online)return;Store.score(J,pick)};
 function render(){
+  $('who').textContent=Store.state?Store.state.names[J-1]:NAME;
+  document.title=$('who').textContent+' scoring';
   if(!Store.code){$('performer').textContent='Missing event code';$('msg').textContent='Add ?e=yourcode to the end of this page address.';$('go').hidden=true;return}
   const s=Store.state||{performer:'',round:0,revealed:false,scores:[null,null,null]}, mine=s.scores[J-1];
   if(s.round!==seen){seen=s.round;pick=null}
