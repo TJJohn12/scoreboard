@@ -7,6 +7,7 @@ apiKey: "AIzaSyBxVpl3kl_MX4pkukbX4VZB16-4ZLT9RE0",
   storageBucket: "dance-scoreboard.firebasestorage.app",
   messagingSenderId: "24558645087",
   appId: "1:24558645087:web:a6827269dda231860850ea"
+  
 };
 
 // 2) Nothing below needs editing.
