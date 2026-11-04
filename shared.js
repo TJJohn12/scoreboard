@@ -1,9 +1,12 @@
 // 1) Paste your Firebase web-app config here (Firebase console > Project settings > Your apps).
 const FIREBASE_CONFIG = {
-  apiKey: "PASTE_API_KEY",
-  authDomain: "PASTE_PROJECT_ID.firebaseapp.com",
-  databaseURL: "https://PASTE_PROJECT_ID-default-rtdb.firebaseio.com",
-  projectId: "PASTE_PROJECT_ID"
+apiKey: "AIzaSyBxVpl3kl_MX4pkukbX4VZB16-4ZLT9RE0",
+  authDomain: "dance-scoreboard.firebaseapp.com",
+  databaseURL: "https://dance-scoreboard-default-rtdb.firebaseio.com",
+  projectId: "dance-scoreboard",
+  storageBucket: "dance-scoreboard.firebasestorage.app",
+  messagingSenderId: "24558645087",
+  appId: "1:24558645087:web:a6827269dda231860850ea"
 };
 
 // 2) Nothing below needs editing.
