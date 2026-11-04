@@ -4,45 +4,47 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Scoreboard</title>
 <style>
-:root{--bg:#2a0b19;--panel:#401428;--ink:#f7ebd3;--dim:#c3a3ae;--brass:#e3b862;--serif:"Bodoni 72",Didot,"Playfair Display",Georgia,serif}
+:root{--bg:#031f47;--panel:#043371;--ink:#f3ebe2;--dim:#b8cce6;--orange:#cc4e00;--sky:#8fdbff;--line:#1d5cb5;--serif:"Bodoni 72",Didot,"Playfair Display",Georgia,serif}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--ink);font:1.25rem/1.4 system-ui,sans-serif;overflow:hidden}
 .wrap{height:100%;display:grid;grid-template-columns:1fr 24rem;gap:2rem;padding:3vw}
+.wrap.solo{grid-template-columns:1fr}
 #stage{display:flex;flex-direction:column;justify-content:center;min-width:0}
 #status{color:var(--dim);font-size:1.6rem;margin:0}
 #couple{font:400 clamp(3rem,7vw,7.5rem)/1 var(--serif);margin:.2em 0 .5em}
 #cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
-.card{background:var(--panel);border-radius:.75rem;padding:1.5rem;min-height:15rem;display:flex;flex-direction:column;justify-content:space-between;border:2px solid transparent;transition:border-color .4s}
-.card.ready{border-color:#6b3550}
+.card{background:var(--panel);border-radius:.75rem;padding:1.5rem;min-height:15rem;display:flex;flex-direction:column;justify-content:space-between;border:2px solid var(--line);transition:border-color .4s}
+.card.ready{border-color:var(--sky)}
 .jn{color:var(--dim);font-size:1.4rem}
 .st{font-size:1.6rem;color:var(--dim)}
-.card.ready .st{color:var(--brass)}
-.num{font:400 clamp(6rem,13vw,12rem)/1 var(--serif);color:var(--brass);text-align:center;opacity:0;transform:scale(.7);transition:none}
+.card.ready .st{color:var(--sky)}
+.num{font:400 clamp(6rem,13vw,12rem)/1 var(--serif);color:#fff;text-align:center;opacity:0;transform:scale(.7);transition:none}
 .card.on .st{display:none}
 .card.on .num{opacity:1;transform:none;transition:opacity .6s,transform .6s cubic-bezier(.2,1.4,.4,1)}
 .card.on:nth-child(1) .num{transition-delay:.3s}
 .card.on:nth-child(2) .num{transition-delay:1.2s}
 .card.on:nth-child(3) .num{transition-delay:2.1s}
-#tot{margin-top:2rem;display:flex;align-items:baseline;gap:1rem;opacity:0}
+#tot{margin-top:2rem;display:flex;align-items:baseline;gap:1rem;opacity:0;background:var(--orange);color:#fff;padding:.8rem 2rem;border-radius:.75rem;width:fit-content}
 #tot.on{opacity:1;transition:opacity .8s 3.2s}
 #tot b{font:400 7rem/1 var(--serif)}
 aside{background:var(--panel);border-radius:.75rem;padding:1.5rem;overflow:auto}
-aside h2{font:400 2rem var(--serif);margin:0 0 1rem}
+aside[hidden]{display:none}
+aside h2{font:400 2rem var(--serif);margin:0 0 1rem;padding-bottom:.6rem;border-bottom:3px solid var(--orange)}
 ol{margin:0;padding:0;list-style:none}
-li{display:flex;justify-content:space-between;gap:1rem;padding:.6rem 0;border-bottom:1px solid #5c2a42}
-li b{color:var(--brass);font-weight:600}
+li{display:flex;justify-content:space-between;gap:1rem;padding:.6rem 0;border-bottom:1px solid var(--line)}
+li b{color:var(--sky);font-weight:600}
 #empty{color:var(--dim)}
-#net{position:fixed;top:1rem;right:1rem;background:#8a1c1c;padding:.3rem .8rem;border-radius:.4rem;font-size:1rem}
+#net{position:fixed;top:1rem;right:1rem;background:#8a1c1c;color:#fff;padding:.3rem .8rem;border-radius:.4rem;font-size:1rem}
 #net[hidden],#ops[hidden]{display:none}
-#ops{position:fixed;left:0;right:0;bottom:0;background:#14050c;padding:.8rem 3vw;display:flex;gap:.6rem;flex-wrap:wrap;font-size:1rem}
-#ops input,#ops button{font:inherit;padding:.6rem .9rem;border-radius:.4rem;border:1px solid #5c2a42;background:var(--panel);color:var(--ink)}
+#ops{position:fixed;left:0;right:0;bottom:0;background:#021433;padding:.8rem 3vw;display:flex;gap:.6rem;flex-wrap:wrap;font-size:1rem}
+#ops input,#ops button{font:inherit;padding:.6rem .9rem;border-radius:.4rem;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
 #ops button{cursor:pointer}#ops button:disabled{opacity:.35;cursor:not-allowed}
 #ops input{min-width:16rem}
-button:focus-visible,input:focus-visible{outline:3px solid var(--brass);outline-offset:2px}
+button:focus-visible,input:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){.card.on .num,#tot.on{transition:none!important}}
 </style>
-<div class="wrap">
+<div class="wrap" id="wrap">
   <section id="stage">
     <p id="status"></p>
     <h1 id="couple"></h1>
@@ -53,7 +55,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--brass);outline-
     </div>
     <div id="tot"><span>Total</span><b id="totnum"></b><span>out of 30</span></div>
   </section>
-  <aside>
+  <aside id="side">
     <h2>Leaderboard</h2>
     <p id="empty">Scores will appear here after each reveal.</p>
     <ol id="board"></ol>
@@ -64,6 +66,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--brass);outline-
   <input id="nm" placeholder="Couple name" autocomplete="off">
   <button id="start">Start couple</button>
   <button id="reveal">Reveal scores</button>
+  <button id="toggle">Hide leaderboard</button>
   <button id="reset">Reset everything</button>
 </div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -75,20 +78,27 @@ const $=id=>document.getElementById(id);
 const cards=[...document.querySelectorAll('.card')];
 cards.forEach((c,i)=>c.querySelector('.jn').textContent=NAMES[i]);
 let lastBoard='';
+const showing=()=>!Store.state||Store.state.showBoard;
 
 $('start').onclick=()=>{const name=$('nm').value.trim();if(!name||!Store.online)return;Store.start(name);$('nm').value=''};
 $('nm').addEventListener('keydown',e=>{if(e.key==='Enter')$('start').click()});
 $('reveal').onclick=()=>{const s=Store.state;if(!s||!s.couple||s.revealed||s.scores.some(v=>v===null))return;Store.reveal()};
+$('toggle').onclick=()=>{if(Store.online)Store.setBoard(!showing())};
 $('reset').onclick=()=>{if(confirm('Clear the current couple and the whole leaderboard?')){lastBoard='';Store.reset()}};
 addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT')return;
-  if(e.key==='o'||e.key==='O')$('ops').hidden=!$('ops').hidden;
+  const k=e.key.toLowerCase();
+  if(k==='o')$('ops').hidden=!$('ops').hidden;
+  if(k==='l')$('toggle').click();
 });
 
 function render(){
   if(!Store.code){$('status').textContent='Missing event code. Add ?e=yourcode to this page address.';return}
-  const s=Store.state||{couple:'',revealed:false,scores:[null,null,null],history:[]}, has=!!s.couple;
+  const s=Store.state||{couple:'',revealed:false,showBoard:true,scores:[null,null,null],history:[]}, has=!!s.couple;
   $('net').hidden=Store.online;
+  $('wrap').classList.toggle('solo',!s.showBoard);
+  $('side').hidden=!s.showBoard;
+  $('toggle').textContent=s.showBoard?'Hide leaderboard':'Show leaderboard';
   $('couple').textContent=s.couple;
   $('status').textContent=!has?'Waiting for the next couple':s.revealed?'':'The judges are scoring';
   $('cards').hidden=!has;
@@ -103,15 +113,16 @@ function render(){
   $('totnum').textContent=s.revealed?s.scores.reduce((a,b)=>a+b,0):'';
   $('reveal').disabled=!has||s.revealed||s.scores.some(v=>v===null)||!Store.online;
   $('start').disabled=!Store.online;
+  $('toggle').disabled=!Store.online;
 
   const rows=s.history.filter(e=>Date.now()>e.at+4200).sort((a,b)=>b.total-a.total);
   const sig=JSON.stringify(rows);
   if(sig!==lastBoard){
     lastBoard=sig;
     $('board').textContent='';
-    rows.forEach(e=>{
+    rows.forEach((e,i)=>{
       const li=document.createElement('li'),n=document.createElement('span'),t=document.createElement('b');
-      n.textContent=e.couple;t.textContent=e.total;li.append(n,t);$('board').appendChild(li);
+      n.textContent=(i+1)+'. '+e.couple;t.textContent=e.total;li.append(n,t);$('board').appendChild(li);
     });
     $('empty').hidden=rows.length>0;
   }
