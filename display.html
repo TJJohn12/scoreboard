@@ -4,7 +4,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Scoreboard</title>
 <style>
-:root{--logo-tile:#ffffff;--bg:#031f47;--panel:#043371;--ink:#f3ebe2;--dim:#b8cce6;--orange:#cc4e00;--sky:#8fdbff;--line:#1d5cb5;--serif:"Bodoni 72",Didot,"Playfair Display",Georgia,serif}
+:root{--bg:#031f47;--panel:#043371;--ink:#f3ebe2;--dim:#b8cce6;--orange:#cc4e00;--sky:#8fdbff;--line:#1d5cb5;--serif:"Bodoni 72",Didot,"Playfair Display",Georgia,serif}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--ink);font:1.25rem/1.4 system-ui,sans-serif;overflow:hidden}
@@ -44,16 +44,6 @@ li b{color:var(--sky);font-weight:600}
 #ops button{cursor:pointer}#ops button:disabled{opacity:.35;cursor:not-allowed}
 #ops input{min-width:16rem}
 #ops .nmj{min-width:11rem}
-#sponsors,#hostpage{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4vh;min-height:0}
-#sponsors[hidden],#hostpage[hidden]{display:none}
-.tile{background:var(--logo-tile);border-radius:1rem;padding:2.5vh 3vw;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.tile img{width:100%;height:100%;object-fit:contain;display:block}
-.tile.host{height:32vh;width:min(60vw,100%)}
-.tile.big{height:72vh;width:min(84vw,100%)}
-.row{display:grid;grid-template-columns:repeat(3,1fr);gap:3vw;width:100%}
-.row .tile{height:38vh}
-.ph{color:#222;font-size:1.4rem;text-align:center}
-#ops button.active{background:var(--orange);border-color:var(--orange);color:#fff}
 button:focus-visible,input:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){.card.on .num,#tot.on{transition:none!important}}
 </style>
@@ -73,26 +63,13 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sky);outline-of
     <p id="empty">Scores will appear here after each reveal.</p>
     <ol id="board"></ol>
   </aside>
-  <section id="sponsors" hidden>
-    <div class="tile host"><img src="Host.png" alt="Event hosts"></div>
-    <div class="row">
-      <div class="tile"><img src="Sponsor%201.png" alt="Sponsor 1"></div>
-      <div class="tile"><img src="Sponsor%202.png" alt="Sponsor 2"></div>
-      <div class="tile"><img src="Sponsor%203.png" alt="Sponsor 3"></div>
-    </div>
-  </section>
-  <section id="hostpage" hidden>
-    <div class="tile big"><img src="Host.png" alt="Event hosts"></div>
-  </section>
 </div>
 <div id="net" hidden>Offline. Reconnecting…</div>
 <div id="ops" hidden>
   <input id="nm" placeholder="Performer name" autocomplete="off">
   <button id="start">Start performer</button>
   <button id="reveal">Reveal scores</button>
-  <button id="vboard" aria-pressed="false">Leaderboard</button>
-  <button id="vsponsors" aria-pressed="false">Sponsors</button>
-  <button id="vhost" aria-pressed="false">Host</button>
+  <button id="toggle">Hide leaderboard</button>
   <button id="reset">Reset everything</button>
   <span id="ver" style="margin-left:auto;color:var(--dim);align-self:center"></span>
   <div style="flex-basis:100%"></div>
@@ -103,20 +80,17 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sky);outline-of
 </div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="shared.js?v=6"></script>
+<script src="shared.js?v=5"></script>
 <script>
 const $=id=>document.getElementById(id);
 const cards=[...document.querySelectorAll('.card')];
 let lastBoard='',lastNames='';
-const view=()=>Store.state?Store.state.view:'stage';
-const setV=v=>{if(Store.online)Store.setView(view()===v?'stage':v)};
+const showing=()=>!!(Store.state&&Store.state.showBoard);
 
 $('start').onclick=()=>{const name=$('nm').value.trim();if(!name||!Store.online)return;Store.start(name);$('nm').value=''};
 $('nm').addEventListener('keydown',e=>{if(e.key==='Enter')$('start').click()});
 $('reveal').onclick=()=>{const s=Store.state;if(!s||!s.performer||s.revealed||s.scores.some(v=>v===null))return;Store.reveal()};
-$('vboard').onclick=()=>setV('board');
-$('vsponsors').onclick=()=>setV('sponsors');
-$('vhost').onclick=()=>setV('host');
+$('toggle').onclick=()=>{if(Store.online)Store.setBoard(!showing())};
 $('savenames').onclick=()=>{if(Store.online)Store.setNames([...document.querySelectorAll('.nmj')].map(i=>i.value))};
 document.querySelectorAll('.nmj').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')$('savenames').click()}));
 $('reset').onclick=()=>{if(confirm('Clear the current performer and the whole leaderboard?')){lastBoard='';Store.reset()}};
@@ -124,25 +98,18 @@ addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT')return;
   const k=e.key.toLowerCase();
   if(k==='o')$('ops').hidden=!$('ops').hidden;
-  if(k==='l')$('vboard').click();
-  if(k==='s')$('vsponsors').click();
-  if(k==='h')$('vhost').click();
+  if(k==='l')$('toggle').click();
 });
 
 function render(){
   if(!Store.code){$('status').textContent='Missing event code. Add ?e=yourcode to this page address.';return}
-  const s=Store.state||{performer:'',revealed:false,view:'stage',names:['Judge 1','Judge 2','Judge 3'],scores:[null,null,null],history:[]}, has=!!s.performer;
+  const s=Store.state||{performer:'',revealed:false,showBoard:false,names:['Judge 1','Judge 2','Judge 3'],scores:[null,null,null],history:[]}, has=!!s.performer;
   $('net').hidden=Store.online&&!Store.error;
   $('net').textContent=Store.error?'Could not save: '+Store.error:'Offline. Reconnecting…';
-  $('ver').textContent='display build 6 · shared build '+(Store.build||'old');
-  $('stage').hidden=s.view!=='stage';
-  $('side').hidden=s.view!=='board';
-  $('sponsors').hidden=s.view!=='sponsors';
-  $('hostpage').hidden=s.view!=='host';
-  [['vboard','board'],['vsponsors','sponsors'],['vhost','host']].forEach(([id,v])=>{
-    $(id).classList.toggle('active',s.view===v);
-    $(id).setAttribute('aria-pressed',s.view===v);
-  });
+  $('ver').textContent='display build 5 · shared build '+(Store.build||'old');
+  $('stage').hidden=s.showBoard;
+  $('side').hidden=!s.showBoard;
+  $('toggle').textContent=s.showBoard?'Hide leaderboard':'Show leaderboard';
   $('performer').textContent=s.performer;
   $('status').textContent=!has?'Waiting for the next performer':s.revealed?'':'The judges are scoring';
   $('cards').hidden=!has;
@@ -163,7 +130,7 @@ function render(){
   $('totnum').textContent=s.revealed?s.scores.reduce((a,b)=>a+b,0):'';
   $('reveal').disabled=!has||s.revealed||s.scores.some(v=>v===null)||!Store.online;
   $('start').disabled=!Store.online;
-  ['vboard','vsponsors','vhost'].forEach(id=>$(id).disabled=!Store.online);
+  $('toggle').disabled=!Store.online;
   $('savenames').disabled=!Store.online;
 
   const rows=s.history.filter(e=>Date.now()>e.at+4200).sort((a,b)=>b.total-a.total);
@@ -179,8 +146,6 @@ function render(){
     $('empty').hidden=rows.length>0;
   }
 }
-function miss(img){const d=document.createElement('span');d.className='ph';d.textContent='Missing image: '+decodeURIComponent(img.getAttribute('src'));img.replaceWith(d)}
-document.querySelectorAll('.tile img').forEach(img=>{if(img.complete&&!img.naturalWidth)miss(img);else img.addEventListener('error',()=>miss(img))});
 Store.onChange(render);render();setInterval(render,400);
 </script>
 </html>
