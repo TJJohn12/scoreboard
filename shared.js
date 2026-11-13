@@ -22,7 +22,7 @@ const Store = (() => {
       performer: v.performer || '',
       round: v.round || 0,
       revealed: !!v.revealed,
-      showBoard: v.showBoard === true,
+      view: ['board', 'sponsors', 'host'].includes(v.view) ? v.view : 'stage',
       names: ['j1', 'j2', 'j3'].map((k, i) => ((v.names || {})[k] || '').trim() || 'Judge ' + (i + 1)),
       scores: [sc.j1, sc.j2, sc.j3].map(x => x === undefined ? null : x),
       history: Object.values(v.history || {}).sort((a, b) => a.at - b.at)
@@ -39,7 +39,7 @@ const Store = (() => {
     db.ref('.info/connected').on('value', s => { online = !!s.val(); emit(); });
   }
   return {
-    code, build: '5',
+    code, build: '6',
     get error() { return err; },
     get state() { return state; },
     get online() { return online; },
@@ -55,7 +55,7 @@ const Store = (() => {
       u['history/' + key] = { performer: s.performer, scores: s.scores, total: s.scores.reduce((a, b) => a + b, 0), at: Date.now() };
       return w(ref.update(u));
     },
-    setBoard(on) { return w(ref.update({ showBoard: !!on })); },
+    setView(v) { return w(ref.update({ view: v })); },
     setNames(a) {
       const n = {};
       a.forEach((x, i) => { n['j' + (i + 1)] = String(x || '').trim().slice(0, 24) || null; });
@@ -63,7 +63,7 @@ const Store = (() => {
     },
     // Reset clears the show but keeps the judge names.
     reset() {
-      return w(ref.update({ performer: null, round: null, revealed: null, scores: null, history: null, showBoard: null }));
+      return w(ref.update({ performer: null, round: null, revealed: null, scores: null, history: null, view: null, showBoard: null }));
     }
   };
 })();
