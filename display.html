@@ -49,7 +49,9 @@ li b{color:var(--sky);font-weight:600}
 .tile{background:var(--logo-tile);border-radius:1rem;padding:2.5vh 3vw;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .tile img{width:100%;height:100%;object-fit:contain;display:block}
 .tile.host{height:32vh;width:min(60vw,100%)}
-.tile.big{height:72vh;width:min(84vw,100%)}
+.tile.big{height:58vh;width:min(84vw,100%)}
+#hosttext{font:400 clamp(2rem,4vw,4.5rem)/1.2 var(--serif);text-align:center;max-width:90vw;margin:0}
+#hosttext[hidden]{display:none}
 .row{display:grid;grid-template-columns:repeat(4,1fr);gap:2vw;width:100%}
 .row .tile{height:38vh}
 .ph{color:#222;font-size:1.4rem;text-align:center}
@@ -84,6 +86,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sky);outline-of
   </section>
   <section id="hostpage" hidden>
     <div class="tile big"><img src="Host.png" alt="Event hosts"></div>
+    <p id="hosttext" hidden></p>
   </section>
 </div>
 <div id="net" hidden>Offline. Reconnecting…</div>
@@ -101,14 +104,17 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sky);outline-of
   <input class="nmj" maxlength="24" placeholder="Judge 2 name" aria-label="Judge 2 name" autocomplete="off">
   <input class="nmj" maxlength="24" placeholder="Judge 3 name" aria-label="Judge 3 name" autocomplete="off">
   <button id="savenames">Save judge names</button>
+  <div style="flex-basis:100%"></div>
+  <input id="ht" maxlength="200" placeholder="Text shown under the host logo" aria-label="Host page text" autocomplete="off" style="flex:1;min-width:24rem">
+  <button id="savehost">Save host text</button>
 </div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="shared.js?v=7"></script>
+<script src="shared.js?v=8"></script>
 <script>
 const $=id=>document.getElementById(id);
 const cards=[...document.querySelectorAll('.card')];
-let lastBoard='',lastNames='';
+let lastBoard='',lastNames='',lastHost=null;
 const view=()=>Store.state?Store.state.view:'stage';
 const setV=v=>{if(Store.online&&Store.setView)Store.setView(view()===v?'stage':v)};
 
@@ -120,6 +126,8 @@ $('vsponsors').onclick=()=>setV('sponsors');
 $('vhost').onclick=()=>setV('host');
 $('savenames').onclick=()=>{if(Store.online)Store.setNames([...document.querySelectorAll('.nmj')].map(i=>i.value))};
 document.querySelectorAll('.nmj').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')$('savenames').click()}));
+$('savehost').onclick=()=>{if(Store.online&&Store.setHostText)Store.setHostText($('ht').value)};
+$('ht').addEventListener('keydown',e=>{if(e.key==='Enter')$('savehost').click()});
 $('reset').onclick=()=>{if(confirm('Clear the current performer and the whole leaderboard?')){lastBoard='';Store.reset()}};
 addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT')return;
@@ -132,11 +140,14 @@ addEventListener('keydown',e=>{
 
 function render(){
   if(!Store.code){$('status').textContent='Missing event code. Add ?e=yourcode to this page address.';return}
-  const s=Store.state||{performer:'',revealed:false,view:'stage',names:['Judge 1','Judge 2','Judge 3'],scores:[null,null,null],history:[]}, has=!!s.performer;
-  const stale=Store.build!=='6';
+  const s=Store.state||{performer:'',revealed:false,view:'stage',hostText:'',names:['Judge 1','Judge 2','Judge 3'],scores:[null,null,null],history:[]}, has=!!s.performer;
+  const stale=Store.build!=='7';
   $('net').hidden=Store.online&&!Store.error&&!stale;
   $('net').textContent=stale?'shared.js is out of date. Re-upload the latest shared.js.':Store.error?'Could not save: '+Store.error:'Offline. Reconnecting…';
-  $('ver').textContent='display build 8 · shared build '+(Store.build||'old');
+  $('ver').textContent='display build 9 · shared build '+(Store.build||'old');
+  const ht=s.hostText||'';
+  $('hosttext').textContent=ht;$('hosttext').hidden=!ht;
+  if(ht!==lastHost&&document.activeElement!==$('ht')){lastHost=ht;$('ht').value=ht}
   const cur=['board','sponsors','host'].includes(s.view)?s.view:'stage';
   $('stage').hidden=cur!=='stage';
   $('side').hidden=cur!=='board';
@@ -167,6 +178,7 @@ function render(){
   $('reveal').disabled=!has||s.revealed||s.scores.some(v=>v===null)||!Store.online;
   $('start').disabled=!Store.online;
   ['vboard','vsponsors','vhost'].forEach(id=>$(id).disabled=!Store.online);
+  $('savehost').disabled=!Store.online;
   $('savenames').disabled=!Store.online;
 
   const rows=s.history.filter(e=>Date.now()>e.at+4200).sort((a,b)=>b.total-a.total);

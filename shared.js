@@ -22,6 +22,7 @@ const Store = (() => {
       performer: v.performer || '',
       round: v.round || 0,
       revealed: !!v.revealed,
+      hostText: String(v.hostText || ''),
       view: ['board', 'sponsors', 'host'].includes(v.view) ? v.view : 'stage',
       names: ['j1', 'j2', 'j3'].map((k, i) => ((v.names || {})[k] || '').trim() || 'Judge ' + (i + 1)),
       scores: [sc.j1, sc.j2, sc.j3].map(x => x === undefined ? null : x),
@@ -39,7 +40,7 @@ const Store = (() => {
     db.ref('.info/connected').on('value', s => { online = !!s.val(); emit(); });
   }
   return {
-    code, build: '6',
+    code, build: '7',
     get error() { return err; },
     get state() { return state; },
     get online() { return online; },
@@ -55,6 +56,7 @@ const Store = (() => {
       u['history/' + key] = { performer: s.performer, scores: s.scores, total: s.scores.reduce((a, b) => a + b, 0), at: Date.now() };
       return w(ref.update(u));
     },
+    setHostText(t) { return w(ref.update({ hostText: String(t || '').trim().slice(0, 200) || null })); },
     setView(v) { return w(ref.update({ view: v })); },
     setNames(a) {
       const n = {};
