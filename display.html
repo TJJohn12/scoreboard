@@ -4,7 +4,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Scoreboard</title>
 <style>
-:root{--logo-tile:#043371;--bg:#031f47;--panel:#043371;--ink:#f3ebe2;--dim:#b8cce6;--orange:#cc4e00;--sky:#8fdbff;--line:#1d5cb5;--serif:"Bodoni 72",Didot,"Playfair Display",Georgia,serif}
+:root{--logo-tile:#ffffff;--bg:#031f47;--panel:#043371;--ink:#f3ebe2;--dim:#b8cce6;--orange:#cc4e00;--sky:#8fdbff;--line:#1d5cb5;--serif:"Bodoni 72",Didot,"Playfair Display",Georgia,serif}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--ink);font:1.25rem/1.4 system-ui,sans-serif;overflow:hidden}
@@ -50,7 +50,7 @@ li b{color:var(--sky);font-weight:600}
 .tile img{width:100%;height:100%;object-fit:contain;display:block}
 .tile.host{height:32vh;width:min(60vw,100%)}
 .tile.big{height:72vh;width:min(84vw,100%)}
-.row{display:grid;grid-template-columns:repeat(3,1fr);gap:3vw;width:100%}
+.row{display:grid;grid-template-columns:repeat(4,1fr);gap:2vw;width:100%}
 .row .tile{height:38vh}
 .ph{color:#222;font-size:1.4rem;text-align:center}
 #ops button.active{background:var(--orange);border-color:var(--orange);color:#fff}
@@ -79,6 +79,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sky);outline-of
       <div class="tile"><img src="Sponsor%201.png" alt="Sponsor 1"></div>
       <div class="tile"><img src="Sponsor%202.png" alt="Sponsor 2"></div>
       <div class="tile"><img src="Sponsor%203.png" alt="Sponsor 3"></div>
+      <div class="tile"><img src="Sponsor%204.png" alt="Sponsor 4"></div>
     </div>
   </section>
   <section id="hostpage" hidden>
@@ -103,13 +104,13 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sky);outline-of
 </div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="shared.js?v=6"></script>
+<script src="shared.js?v=7"></script>
 <script>
 const $=id=>document.getElementById(id);
 const cards=[...document.querySelectorAll('.card')];
 let lastBoard='',lastNames='';
 const view=()=>Store.state?Store.state.view:'stage';
-const setV=v=>{if(Store.online)Store.setView(view()===v?'stage':v)};
+const setV=v=>{if(Store.online&&Store.setView)Store.setView(view()===v?'stage':v)};
 
 $('start').onclick=()=>{const name=$('nm').value.trim();if(!name||!Store.online)return;Store.start(name);$('nm').value=''};
 $('nm').addEventListener('keydown',e=>{if(e.key==='Enter')$('start').click()});
@@ -132,16 +133,18 @@ addEventListener('keydown',e=>{
 function render(){
   if(!Store.code){$('status').textContent='Missing event code. Add ?e=yourcode to this page address.';return}
   const s=Store.state||{performer:'',revealed:false,view:'stage',names:['Judge 1','Judge 2','Judge 3'],scores:[null,null,null],history:[]}, has=!!s.performer;
-  $('net').hidden=Store.online&&!Store.error;
-  $('net').textContent=Store.error?'Could not save: '+Store.error:'Offline. Reconnecting…';
-  $('ver').textContent='display build 6 · shared build '+(Store.build||'old');
-  $('stage').hidden=s.view!=='stage';
-  $('side').hidden=s.view!=='board';
-  $('sponsors').hidden=s.view!=='sponsors';
-  $('hostpage').hidden=s.view!=='host';
+  const stale=Store.build!=='6';
+  $('net').hidden=Store.online&&!Store.error&&!stale;
+  $('net').textContent=stale?'shared.js is out of date. Re-upload the latest shared.js.':Store.error?'Could not save: '+Store.error:'Offline. Reconnecting…';
+  $('ver').textContent='display build 8 · shared build '+(Store.build||'old');
+  const cur=['board','sponsors','host'].includes(s.view)?s.view:'stage';
+  $('stage').hidden=cur!=='stage';
+  $('side').hidden=cur!=='board';
+  $('sponsors').hidden=cur!=='sponsors';
+  $('hostpage').hidden=cur!=='host';
   [['vboard','board'],['vsponsors','sponsors'],['vhost','host']].forEach(([id,v])=>{
-    $(id).classList.toggle('active',s.view===v);
-    $(id).setAttribute('aria-pressed',s.view===v);
+    $(id).classList.toggle('active',cur===v);
+    $(id).setAttribute('aria-pressed',cur===v);
   });
   $('performer').textContent=s.performer;
   $('status').textContent=!has?'Waiting for the next performer':s.revealed?'':'The judges are scoring';
